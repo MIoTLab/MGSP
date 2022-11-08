@@ -1,0 +1,12 @@
+*.svg
+*.swp
+*.o
+*.so
+*.a
+*.data
+*.out
+*.wal
+*.off
+.vscode
+tags
+evaluation/fio/src/t/fuzz/fuzz_parseini

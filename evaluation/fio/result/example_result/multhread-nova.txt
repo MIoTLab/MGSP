@@ -1,0 +1,70 @@
+write
+nova
+1k
+thread_num = 1 
+  WRITE: bw=619MiB/s (649MB/s), 619MiB/s-619MiB/s (649MB/s-649MB/s), io=6194MiB (6495MB), run=10000-10000msec
+thread_num = 2 
+  WRITE: bw=916MiB/s (960MB/s), 458MiB/s-458MiB/s (480MB/s-480MB/s), io=9155MiB (9600MB), run=10000-10000msec
+thread_num = 4 
+  WRITE: bw=839MiB/s (880MB/s), 209MiB/s-210MiB/s (220MB/s-220MB/s), io=8391MiB (8799MB), run=10000-10001msec
+thread_num = 8 
+  WRITE: bw=850MiB/s (891MB/s), 106MiB/s-106MiB/s (111MB/s-112MB/s), io=8497MiB (8909MB), run=10000-10001msec
+thread_num = 16 
+  WRITE: bw=808MiB/s (847MB/s), 45.6MiB/s-57.1MiB/s (47.9MB/s-59.8MB/s), io=8082MiB (8475MB), run=10000-10001msec
+4k
+thread_num = 1 
+  WRITE: bw=1609MiB/s (1688MB/s), 1609MiB/s-1609MiB/s (1688MB/s-1688MB/s), io=15.7GiB (16.9GB), run=10001-10001msec
+thread_num = 2 
+  WRITE: bw=2071MiB/s (2172MB/s), 1035MiB/s-1036MiB/s (1086MB/s-1086MB/s), io=20.2GiB (21.7GB), run=10001-10001msec
+thread_num = 4 
+  WRITE: bw=2003MiB/s (2100MB/s), 500MiB/s-501MiB/s (524MB/s-526MB/s), io=19.6GiB (21.0GB), run=10001-10001msec
+thread_num = 8 
+  WRITE: bw=2059MiB/s (2159MB/s), 257MiB/s-258MiB/s (269MB/s-270MB/s), io=20.1GiB (21.6GB), run=10000-10001msec
+thread_num = 16 
+  WRITE: bw=2066MiB/s (2166MB/s), 128MiB/s-129MiB/s (135MB/s-136MB/s), io=20.2GiB (21.7GB), run=10001-10001msec
+16k
+thread_num = 1 
+  WRITE: bw=5677MiB/s (5953MB/s), 5677MiB/s-5677MiB/s (5953MB/s-5953MB/s), io=55.4GiB (59.5GB), run=10000-10000msec
+thread_num = 2 
+  WRITE: bw=6562MiB/s (6881MB/s), 3280MiB/s-3283MiB/s (3439MB/s-3442MB/s), io=64.1GiB (68.8GB), run=10000-10001msec
+thread_num = 4 
+  WRITE: bw=6689MiB/s (7014MB/s), 1661MiB/s-1677MiB/s (1742MB/s-1759MB/s), io=65.3GiB (70.1GB), run=10000-10001msec
+thread_num = 8 
+  WRITE: bw=6154MiB/s (6453MB/s), 769MiB/s-771MiB/s (806MB/s-809MB/s), io=60.1GiB (64.5GB), run=10000-10001msec
+thread_num = 16 
+  WRITE: bw=6318MiB/s (6624MB/s), 382MiB/s-409MiB/s (401MB/s-428MB/s), io=61.7GiB (66.3GB), run=10001-10001msec
+randwrite
+nova
+1k
+thread_num = 1 
+  WRITE: bw=557MiB/s (584MB/s), 557MiB/s-557MiB/s (584MB/s-584MB/s), io=5570MiB (5840MB), run=10000-10000msec
+thread_num = 2 
+  WRITE: bw=942MiB/s (988MB/s), 471MiB/s-471MiB/s (494MB/s-494MB/s), io=9422MiB (9880MB), run=10000-10000msec
+thread_num = 4 
+  WRITE: bw=797MiB/s (836MB/s), 195MiB/s-207MiB/s (205MB/s-217MB/s), io=7973MiB (8360MB), run=10000-10001msec
+thread_num = 8 
+  WRITE: bw=840MiB/s (881MB/s), 105MiB/s-106MiB/s (110MB/s-111MB/s), io=8402MiB (8810MB), run=10000-10001msec
+thread_num = 16 
+  WRITE: bw=818MiB/s (858MB/s), 50.8MiB/s-51.6MiB/s (53.2MB/s-54.1MB/s), io=8182MiB (8580MB), run=10000-10002msec
+4k
+thread_num = 1 
+  WRITE: bw=1567MiB/s (1644MB/s), 1567MiB/s-1567MiB/s (1644MB/s-1644MB/s), io=15.3GiB (16.4GB), run=10001-10001msec
+thread_num = 2 
+  WRITE: bw=2045MiB/s (2144MB/s), 1022MiB/s-1022MiB/s (1072MB/s-1072MB/s), io=20.0GiB (21.4GB), run=10000-10000msec
+thread_num = 4 
+  WRITE: bw=1980MiB/s (2076MB/s), 494MiB/s-496MiB/s (518MB/s-520MB/s), io=19.3GiB (20.8GB), run=10000-10001msec
+thread_num = 8 
+  WRITE: bw=2008MiB/s (2105MB/s), 249MiB/s-252MiB/s (261MB/s-265MB/s), io=19.6GiB (21.1GB), run=10000-10001msec
+thread_num = 16 
+  WRITE: bw=1958MiB/s (2053MB/s), 122MiB/s-123MiB/s (128MB/s-129MB/s), io=19.1GiB (20.5GB), run=10000-10001msec
+16k
+thread_num = 1 
+  WRITE: bw=5204MiB/s (5457MB/s), 5204MiB/s-5204MiB/s (5457MB/s-5457MB/s), io=50.8GiB (54.6GB), run=10000-10000msec
+thread_num = 2 
+  WRITE: bw=6477MiB/s (6791MB/s), 3238MiB/s-3239MiB/s (3395MB/s-3397MB/s), io=63.3GiB (67.9GB), run=10001-10001msec
+thread_num = 4 
+  WRITE: bw=6540MiB/s (6857MB/s), 1614MiB/s-1648MiB/s (1693MB/s-1728MB/s), io=63.9GiB (68.6GB), run=10000-10001msec
+thread_num = 8 
+  WRITE: bw=6591MiB/s (6911MB/s), 819MiB/s-827MiB/s (859MB/s-867MB/s), io=64.4GiB (69.1GB), run=10001-10001msec
+thread_num = 16 
+  WRITE: bw=6292MiB/s (6598MB/s), 391MiB/s-394MiB/s (410MB/s-413MB/s), io=61.5GiB (66.0GB), run=10000-10001msec

@@ -1,0 +1,68 @@
+readwrite
+nova
+4k
+write_ratio = 0 
+   READ: bw=2483MiB/s (2604MB/s), 2483MiB/s-2483MiB/s (2604MB/s-2604MB/s), io=24.2GiB (26.0GB), run=10000-10000msec
+write_ratio = 10 
+   READ: bw=1846MiB/s (1936MB/s), 1846MiB/s-1846MiB/s (1936MB/s-1936MB/s), io=18.0GiB (19.4GB), run=10001-10001msec
+  WRITE: bw=205MiB/s (215MB/s), 205MiB/s-205MiB/s (215MB/s-215MB/s), io=2053MiB (2153MB), run=10001-10001msec
+write_ratio = 20 
+   READ: bw=1569MiB/s (1645MB/s), 1569MiB/s-1569MiB/s (1645MB/s-1645MB/s), io=15.3GiB (16.5GB), run=10001-10001msec
+  WRITE: bw=393MiB/s (412MB/s), 393MiB/s-393MiB/s (412MB/s-412MB/s), io=3929MiB (4120MB), run=10001-10001msec
+write_ratio = 30 
+   READ: bw=1343MiB/s (1408MB/s), 1343MiB/s-1343MiB/s (1408MB/s-1408MB/s), io=13.1GiB (14.1GB), run=10001-10001msec
+  WRITE: bw=575MiB/s (603MB/s), 575MiB/s-575MiB/s (603MB/s-603MB/s), io=5753MiB (6032MB), run=10001-10001msec
+write_ratio = 40 
+   READ: bw=1101MiB/s (1154MB/s), 1101MiB/s-1101MiB/s (1154MB/s-1154MB/s), io=10.7GiB (11.5GB), run=10001-10001msec
+  WRITE: bw=734MiB/s (770MB/s), 734MiB/s-734MiB/s (770MB/s-770MB/s), io=7340MiB (7696MB), run=10001-10001msec
+write_ratio = 50 
+   READ: bw=918MiB/s (962MB/s), 918MiB/s-918MiB/s (962MB/s-962MB/s), io=9177MiB (9623MB), run=10001-10001msec
+  WRITE: bw=917MiB/s (962MB/s), 917MiB/s-917MiB/s (962MB/s-962MB/s), io=9175MiB (9621MB), run=10001-10001msec
+write_ratio = 60 
+   READ: bw=703MiB/s (737MB/s), 703MiB/s-703MiB/s (737MB/s-737MB/s), io=7025MiB (7366MB), run=10000-10000msec
+  WRITE: bw=1053MiB/s (1104MB/s), 1053MiB/s-1053MiB/s (1104MB/s-1104MB/s), io=10.3GiB (11.0GB), run=10000-10000msec
+write_ratio = 70 
+   READ: bw=516MiB/s (541MB/s), 516MiB/s-516MiB/s (541MB/s-541MB/s), io=5159MiB (5410MB), run=10000-10000msec
+  WRITE: bw=1203MiB/s (1261MB/s), 1203MiB/s-1203MiB/s (1261MB/s-1261MB/s), io=11.7GiB (12.6GB), run=10000-10000msec
+write_ratio = 80 
+   READ: bw=338MiB/s (354MB/s), 338MiB/s-338MiB/s (354MB/s-354MB/s), io=3380MiB (3544MB), run=10000-10000msec
+  WRITE: bw=1348MiB/s (1414MB/s), 1348MiB/s-1348MiB/s (1414MB/s-1414MB/s), io=13.2GiB (14.1GB), run=10000-10000msec
+write_ratio = 90 
+   READ: bw=166MiB/s (175MB/s), 166MiB/s-166MiB/s (175MB/s-175MB/s), io=1665MiB (1746MB), run=10000-10000msec
+  WRITE: bw=1496MiB/s (1569MB/s), 1496MiB/s-1496MiB/s (1569MB/s-1569MB/s), io=14.6GiB (15.7GB), run=10000-10000msec
+write_ratio = 100 
+  WRITE: bw=1666MiB/s (1747MB/s), 1666MiB/s-1666MiB/s (1747MB/s-1747MB/s), io=16.3GiB (17.5GB), run=10001-10001msec
+randrw
+nova
+4k
+write_ratio = 0 
+   READ: bw=1870MiB/s (1961MB/s), 1870MiB/s-1870MiB/s (1961MB/s-1961MB/s), io=18.3GiB (19.6GB), run=10000-10000msec
+write_ratio = 10 
+   READ: bw=1481MiB/s (1553MB/s), 1481MiB/s-1481MiB/s (1553MB/s-1553MB/s), io=14.5GiB (15.5GB), run=10000-10000msec
+  WRITE: bw=165MiB/s (173MB/s), 165MiB/s-165MiB/s (173MB/s-173MB/s), io=1647MiB (1727MB), run=10000-10000msec
+write_ratio = 20 
+   READ: bw=1298MiB/s (1361MB/s), 1298MiB/s-1298MiB/s (1361MB/s-1361MB/s), io=12.7GiB (13.6GB), run=10001-10001msec
+  WRITE: bw=325MiB/s (341MB/s), 325MiB/s-325MiB/s (341MB/s-341MB/s), io=3248MiB (3406MB), run=10001-10001msec
+write_ratio = 30 
+   READ: bw=1126MiB/s (1181MB/s), 1126MiB/s-1126MiB/s (1181MB/s-1181MB/s), io=11.0GiB (11.8GB), run=10001-10001msec
+  WRITE: bw=483MiB/s (506MB/s), 483MiB/s-483MiB/s (506MB/s-506MB/s), io=4826MiB (5060MB), run=10001-10001msec
+write_ratio = 40 
+   READ: bw=971MiB/s (1018MB/s), 971MiB/s-971MiB/s (1018MB/s-1018MB/s), io=9706MiB (10.2GB), run=10000-10000msec
+  WRITE: bw=647MiB/s (678MB/s), 647MiB/s-647MiB/s (678MB/s-678MB/s), io=6470MiB (6784MB), run=10000-10000msec
+write_ratio = 50 
+   READ: bw=793MiB/s (831MB/s), 793MiB/s-793MiB/s (831MB/s-831MB/s), io=7928MiB (8313MB), run=10001-10001msec
+  WRITE: bw=792MiB/s (831MB/s), 792MiB/s-792MiB/s (831MB/s-831MB/s), io=7923MiB (8307MB), run=10001-10001msec
+write_ratio = 60 
+   READ: bw=624MiB/s (655MB/s), 624MiB/s-624MiB/s (655MB/s-655MB/s), io=6244MiB (6547MB), run=10001-10001msec
+  WRITE: bw=936MiB/s (982MB/s), 936MiB/s-936MiB/s (982MB/s-982MB/s), io=9362MiB (9817MB), run=10001-10001msec
+write_ratio = 70 
+   READ: bw=460MiB/s (482MB/s), 460MiB/s-460MiB/s (482MB/s-482MB/s), io=4600MiB (4824MB), run=10000-10000msec
+  WRITE: bw=1072MiB/s (1124MB/s), 1072MiB/s-1072MiB/s (1124MB/s-1124MB/s), io=10.5GiB (11.2GB), run=10000-10000msec
+write_ratio = 80 
+   READ: bw=305MiB/s (320MB/s), 305MiB/s-305MiB/s (320MB/s-320MB/s), io=3051MiB (3199MB), run=10001-10001msec
+  WRITE: bw=1219MiB/s (1278MB/s), 1219MiB/s-1219MiB/s (1278MB/s-1278MB/s), io=11.9GiB (12.8GB), run=10001-10001msec
+write_ratio = 90 
+   READ: bw=154MiB/s (161MB/s), 154MiB/s-154MiB/s (161MB/s-161MB/s), io=1536MiB (1610MB), run=10001-10001msec
+  WRITE: bw=1382MiB/s (1449MB/s), 1382MiB/s-1382MiB/s (1449MB/s-1449MB/s), io=13.5GiB (14.5GB), run=10001-10001msec
+write_ratio = 100 
+  WRITE: bw=1546MiB/s (1621MB/s), 1546MiB/s-1546MiB/s (1621MB/s-1621MB/s), io=15.1GiB (16.2GB), run=10000-10000msec
