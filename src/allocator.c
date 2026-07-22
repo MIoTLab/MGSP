@@ -454,6 +454,7 @@ mmio_t *get_new_mmio(int fd, int flags, unsigned long ino,
   init_radixlog(&mmio->radixlog, len);
   mmio->start = addr;
   mmio->end = addr + len;
+  mmio->mmap_size = len;
   mmio->fsize = fsize;
   mmio->ino = ino;
   mmio->bitmaplog.log = alloc_log_data(LOG_4K);
