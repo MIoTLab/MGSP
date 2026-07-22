@@ -2,11 +2,19 @@
 #define LIBNVMMIO_MMAP_H
 
 #include <libpmem.h>
+#include <immintrin.h>
 #include <pthread.h>
 
 #include "radixlog.h"
 #include "slist.h"
 #include "bravo.h"
+
+// #define Profile
+#ifdef Profile
+extern size_t total_write_size;
+extern size_t total_flush_size;
+extern size_t total_fence_num;
+#endif
 
 typedef enum { UNDO, REDO } policy_t;
 typedef enum { READOPT, WRITEOPT } policy_g_t;
@@ -29,26 +37,58 @@ typedef struct mmio_struct {
   unsigned long write;
   unsigned long read_size;
   unsigned long write_size;
+  unsigned long mmap_size;
   off_t fsize;
   int ref;
 } mmio_t;
 
-void ntstore(void *dst, void *src, size_t n);
-void flush(void *addr, size_t n);
+//void ntstore(void *dst, void *src, size_t n);
+//void flush(void *addr, size_t n);
 
 //#define NTSTORE(dst, src, n) ntstore(dst,src,n) 
 //#define FENCE() pmem_drain()
 //#define FLUSH(addr, n) flush(addr,n) 
 
-#define NTSTORE(dst, src, n) pmem_memcpy_nodrain(dst, src, n)
-#define FENCE() pmem_drain()
-#define FLUSH(addr, n) pmem_flush(addr, n)
+// #define NTSTORE(dst, src, n) pmem_memcpy_nodrain(dst, src, n)
+// #define FENCE() pmem_drain()
+// #define FLUSH(addr, n) pmem_flush(addr, n)
+
+
+#ifdef Profile
+static inline void NTSTORE(void* dst, void* src, size_t n) {
+    memmove_movnt_avx512f_clwb(dst, src, n);
+    total_write_size += n;
+}
+#else
+#define NTSTORE(dst, src, n) memmove_movnt_avx512f_clwb(dst, src, n)
+#endif
+
+#ifdef Profile
+static inline void FENCE() {
+    _mm_sfence();
+    total_fence_num++;
+}
+#else
+#define FENCE() _mm_sfence()
+#endif
+
+static inline void FLUSH(void *buf, uint64_t len) {
+    len += (uint64_t)buf & (64 - 1);
+    for (uint64_t i = 0; i < len; i += 64)
+         _mm_clwb((char *)buf + i);
+#ifdef Profile
+    total_flush_size+=len;
+#endif
+}
+
 
 ssize_t read_redolog(struct slist_head *entries_head, void *dst,
                      void *file_addr, unsigned long offset, unsigned long len);
 
 ssize_t mmio_read_mgl(mmio_t *mmio, int fd, off_t offset, void *buf, size_t len);
 ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf,off_t len, unsigned long tid);
+
+void truncate_check(int fd, mmio_t *mmio, off_t length);
 
 void create_checkpoint_thread(mmio_t *mmio);
 void dfs_bitmap(log_table_t* table, void* dst, void* end);

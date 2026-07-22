@@ -1,7 +1,7 @@
 #ifndef LIBNVMMIO_CONFIG_H
 #define LIBNVMMIO_CONFIG_H
 
-#define DEFAULT_PMEM_PATH "/mnt/pmem"
+#define DEFAULT_PMEM_PATH "/mnt/pmem_emul"
 #define MAX_FD 512
 #define FILE_HASH_SIZE MAX_FD
 #define NR_MMIOS (MAX_FD << 1)

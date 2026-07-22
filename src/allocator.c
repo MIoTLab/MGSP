@@ -30,6 +30,12 @@ extern struct fops_struct posix;
 static char logdir_path[128];
 static unsigned long libnvmmio_pid;
 
+#ifdef Profile
+size_t total_fence_num = 0;
+size_t total_write_size = 0;
+size_t total_flush_size = 0;
+#endif
+
 static flist_t *global_log_list[NR_LOG_SIZES] = {
     NULL,
 };
@@ -180,13 +186,16 @@ static void __attribute__((destructor)) remove_logs(void) {
     PRINT("%s", address[i]);
   }
   PRINT("write_size = %lu\n", write_size);
+#ifdef Profile
   /*
   printf("Write: the callnumber = %lld the run time = %lld the average is %lf\n", call_number[0], runtime_us[0], 1.0*runtime_us[0]/call_number[0]);
   printf("MMIO_Write: the callnumber = %lld the run time = %lld the average is %lf\n", call_number[1], runtime_us[1], 1.0*runtime_us[1]/call_number[1]);
   printf("Write page: the callnumber = %lld the run time = %lld the average is %lf\n", call_number[2], runtime_us[2], 1.0*runtime_us[2]/call_number[2]);
   printf("Write pmem: the callnumber = %lld the run time = %lld the average is %lf\n", call_number[3], runtime_us[3], 1.0*runtime_us[3]/call_number[3]);
   */
-  
+  printf("total_write_size = %lld total_flush_size = %llu total_fence_number = %lld\n", total_write_size, total_flush_size, total_fence_num);
+#endif
+
   dirptr = opendir(logdir_path);
   if (__glibc_unlikely(dirptr == NULL)) {
     HANDLE_ERROR("opendir");
@@ -212,7 +221,6 @@ static void __attribute__((destructor)) remove_logs(void) {
   if (__glibc_unlikely(s != 0)) {
     HANDLE_ERROR("rmdir");
   }
-  
   PRINT("finished");
 }
 
@@ -222,7 +230,7 @@ static void *mmap_logfile(const char *path, size_t len) {
 
   if (path == NULL) {
     fd = -1;
-    flags = MAP_ANONYMOUS | MAP_SHARED;
+    flags = MAP_ANONYMOUS | MAP_SHARED_VALIDATE | MAP_SYNC;
   } else {
     fd = posix.open(path, O_CREAT | O_TRUNC | O_RDWR, 0644);
     if (__glibc_unlikely(fd == -1)) {
@@ -232,7 +240,7 @@ static void *mmap_logfile(const char *path, size_t len) {
     if (__glibc_unlikely(s != 0)) {
       HANDLE_ERROR("posix_fallocate, len=%lu, error = %d", len, s);
     }
-    flags = MAP_SHARED | MAP_POPULATE;
+    flags = MAP_SHARED_VALIDATE | MAP_SYNC | MAP_POPULATE;
   }
 
   addr = mmap(0, len, PROT_READ | PROT_WRITE, flags, fd, 0);
@@ -266,6 +274,7 @@ static void create_global_list(void *addr, size_t size, unsigned long count,
     PUSH_GLOBAL(obj, global);
   }
 
+  PRINT("i = %lu count = %lu", i, count);
   MUTEX_UNLOCK(&global->mutex);
 }
 
@@ -284,6 +293,7 @@ static void create_global_table_list(void) {
 
   count = NR_ALLOC_TABLES - (NR_ALLOC_TABLES % NR_NODE_FILL);
   table_size = sizeof(log_table_t);
+  PRINT("table size is %d\n", sizeof(log_table_t));
   mem_size = table_size * count;
 
   //addr = (void *)malloc(mem_size);
@@ -343,6 +353,7 @@ static void create_global_idx_list(void) {
   }
 
   size = count * sizeof(idx_entry_t);
+  PRINT("index size is %d\n", sizeof(idx_entry_t));
   addr = alloc_pmem("index", 0, size);
 
   global_idx_list = alloc_flist(NR_NODE_FILL);
@@ -381,6 +392,7 @@ static void create_global_mmio_list(void) {
   unsigned long count;
 
   mmio_size = sizeof(mmio_t);
+  PRINT("mmio size is %d\n", sizeof(mmio_t));
   count = NR_MMIOS - (NR_MMIOS % NR_MMIO_FILL);
   mem_size = mmio_size * count;
   addr = alloc_pmem("mmio", 0, mem_size);
@@ -434,7 +446,7 @@ mmio_t *get_new_mmio(int fd, int flags, unsigned long ino,
 
   prot = get_prot(flags);
   PRINT("flag = %d, prot = %d",flags, prot);
-  addr = mmap(NULL, len, prot, MAP_SHARED | MAP_POPULATE, fd, 0);           
+  addr = mmap(NULL, len, prot, MAP_SHARED_VALIDATE | MAP_SYNC | MAP_POPULATE, fd, 0);
   PRINT("addr = %p len = %d",addr,len);
   if (__glibc_unlikely(addr == MAP_FAILED)) {
     HANDLE_ERROR("mmap");
@@ -477,9 +489,9 @@ void release_mmio(mmio_t *mmio, int flags, int fd) {
 log_table_t *alloc_log_table(table_type_t type) {
   log_table_t *table;
 
-  PRINT("table type: %lu", (unsigned long)type);
   POP_PROVIDER(table, log_table_t, local_table_provider, global_table_list);
   table->type = type;
+  PRINT("alloc table type: %lu table = %p", (unsigned long)type, table);
   return table;
 }
 

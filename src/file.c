@@ -54,10 +54,12 @@ static void libnvmmio_open(int fd, int flags, int mode) {
     PRINT("fd = %d ino = %ld fsize = %ld",fd, ino, fsize);
     mmio = get_new_mmio(fd, flags, ino, fsize);
     mmio = put_mmio_hash(ino, mmio);
-    if (mmio->ref > 1) mmio->policy_l = FINELOCK;
     FLUSH(mmio,sizeof(mmio_t));
     FENCE();
   }
+  // if (mmio->ref > 1) {
+  //   mmio->policy_l = FINELOCK;
+  // }
   PRINT("fd = %d mmio->fsize = %d",fd, mmio->fsize);
   file = (file_t *)malloc(sizeof(file_t));
   if (__glibc_unlikely(file == NULL)) {
@@ -188,7 +190,9 @@ int open(const char *pathname, int flags, ...) {
 
 
   fd = posix.open(pathname, flags, mode);  
-  if (flags & O_ATOMIC) {
+  if (flags & O_ATOMIC || memcmp(pathname, "/mnt/pmem_emul/test.db", 22) == 0 || memcmp(pathname, "/mnt/pmem_emul/tpcc.db", 22) == 0 || memcmp(pathname, "/mnt/pmem_emul/database.tkh", 27) == 0 || memcmp(pathname, "/mnt/pmem_emul/casket-ulog", 27) == 0) {
+    if (strstr(pathname, "journal") != NULL || strstr(pathname, "shm") != NULL)
+        return fd;
     PRINT("open pathname=%s, flags=%d, fd=%d tid = %d atomic = %d", pathname, flags, fd, gettid(), flags & O_ATOMIC);
     libnvmmio_open(fd, flags, mode);
   }
@@ -213,8 +217,10 @@ int open64(const char *pathname, int flags, ...) {
   fd = posix.open64(pathname, flags, mode);
   PRINT("open64 pathname=%s, flags=%d, fd=%d\n", pathname, flags, fd);
     
-  if (flags & O_ATOMIC) {
-    PRINT("open64 pathname=%s, flags=%d, fd=%d tid = %d atomic = %d\n", pathname, flags, fd, gettid(), flags & O_ATOMIC);
+  if (flags & O_ATOMIC || memcmp(pathname, "/mnt/pmem_emul/test.db", 22) == 0 || memcmp(pathname, "/mnt/pmem_emul/tpcc.db", 22) == 0 || memcmp(pathname, "/mnt/pmem_emul/database.tkh", 27) == 0 || memcmp(pathname, "/mnt/pmem_emul/casket-ulog", 27) == 0) {
+    if (strstr(pathname, "journal") != NULL || strstr(pathname, "shm") != NULL)
+        return fd;
+    PRINT("open64 pathname=%s, flags=%d, fd=%d tid = %d atomic = %d", pathname, flags, fd, gettid(), flags & O_ATOMIC);
     libnvmmio_open(fd, flags, mode);
   }
   return fd;
@@ -287,7 +293,9 @@ ssize_t pread64(int fd, void *buf, size_t count, off_t pos) {
   if (__glibc_likely(file != NULL)) {
     MUTEX_LOCK(&file->mutex);
     PRINT("pread64 fd=%d, pos = %lu, len=%lu\n", fd, pos,count);
-    ret = mmio_read_mgl(file->mmio, fd, pos, buf, count);
+    memcpy(buf, file->mmio->start + pos, count);
+    ret = count;
+    // ret = mmio_read_mgl(file->mmio, fd, pos, buf, count);
     MUTEX_UNLOCK(&file->mutex);
 
     return ret;
@@ -313,9 +321,11 @@ ssize_t pwrite64(int fd, const void *buf, size_t count, off_t pos) {
   file = get_file(fd);
 
   if (__glibc_likely(file != NULL)) {
+    PRINT("pwrite64 fd=%d, pos = %u len=%lu\n", fd, pos,count);
     MUTEX_LOCK(&file->mutex);    
     ret = mmio_write_mgl(file->mmio, fd, pos, buf, count, fd_table[fd]->tid);
     MUTEX_UNLOCK(&file->mutex);    
+    PRINT("end pwrite64 fd = %d tid = %d\n", fd, fd_table[fd]->tid);
     return ret;
   }
 
@@ -507,9 +517,10 @@ int ftruncate(int fd, off_t length) {
   file = get_file(fd);
   if (file != NULL) {
     MUTEX_LOCK(&file->mutex);
-    PRINT("length = %d\n",length);
+    PRINT("ftruncate length = %d", length);
     file->mmio->fsize = length;
     MUTEX_UNLOCK(&file->mutex);
+    // return 0;
   }
   if (__glibc_unlikely(posix.ftruncate == NULL)) {
     posix.ftruncate = dlsym(RTLD_NEXT, "ftruncate");
@@ -529,10 +540,12 @@ int ftruncate64(int fd, off_t length) {
   if (file != NULL) {
     MUTEX_LOCK(&file->mutex);
     PRINT("file size = %d\n", length);
+    // truncate_check(fd, file->mmio, length);
     file->mmio->fsize = length;
-    file->mmio->end = file->mmio->start + length;
+    // printf("file->mmio->fsize = %d mmap_size = %lu end - start = %lu mmio = %p mmio->start = %p\n", file->mmio->fsize, file->mmio->mmap_size, file->mmio->end - file->mmio->start, file->mmio, file->mmio->start);
     PRINT("mmio = %p file size = %d\n", file->mmio, length);
     MUTEX_UNLOCK(&file->mutex);
+    // return 0;
   }
   if (__glibc_unlikely(posix.ftruncate == NULL)) {
     posix.ftruncate = dlsym(RTLD_NEXT, "ftruncate64");
@@ -547,8 +560,6 @@ int ftruncate64(int fd, off_t length) {
 }
 
 int stat(const char *pathname, struct stat *statbuf) {
-  printf("call stat\n");
-
   if (__glibc_unlikely(posix.stat == NULL)) {
     posix.stat = dlsym(RTLD_NEXT, "__xstat64");
     if (__glibc_unlikely(posix.stat == NULL)) {
@@ -619,6 +630,12 @@ int close(int fd) {
     free(file);
     
     fd_table[fd] = NULL;
+#ifdef Profile
+  printf("close total_write_size = %lld total_flush_size = %llu total_fence_number = %lld\n", total_write_size, total_flush_size, total_fence_num);
+  total_write_size = 0;
+  total_flush_size = 0;
+  total_fence_num = 0;
+#endif
     PRINT("release the file sturcut");
   }
 
@@ -644,4 +661,10 @@ void __attribute__((constructor)) load_libnvmmio(void) {
     init_libnvmmio();
     PRINT("initialized Libnvmmio");
   }
+#ifdef Profile
+  printf("constructor total_write_size = %lld total_flush_size = %llu total_fence_number = %lld\n", total_write_size, total_flush_size, total_fence_num);
+  total_fence_num = 0;
+  total_write_size = 0;
+  total_flush_size = 0;
+#endif
 }

@@ -74,7 +74,8 @@ void flush(void *addr, size_t n) {
   } while (0)
 
 static inline bool check_expend(mmio_t *mmio, off_t offset, size_t len) {
-  if (mmio->end <= (mmio->start + offset + len)) {
+  // if (mmio->end <= (mmio->start + offset + len)) {
+  if (mmio->mmap_size < offset + len) {
     return true;
   } else {
     return false;
@@ -120,7 +121,8 @@ static void expend_mmio(mmio_t *mmio, int fd, off_t offset, size_t len) {
   bravo_write_lock(&mmio->rwlock);
   table_type_t new_skip_type;
   while (check_expend(mmio, offset, len)) {
-    current_len = mmio->end - mmio->start;
+    // current_len = mmio->end - mmio->start;
+    current_len = mmio->mmap_size;
     if (current_len >= BASIC_MMAP_SIZE) {
       new_len = current_len << 1;
     } else {
@@ -154,10 +156,59 @@ static void expend_mmio(mmio_t *mmio, int fd, off_t offset, size_t len) {
       HANDLE_ERROR("mremap");
     }
     mmio->end = mmio->start + new_len;
+    mmio->mmap_size = new_len;
   }
   PRINT("expend memory-mapped file: %lu", mmio->end - mmio->start);
   bravo_write_unlock(&mmio->rwlock);
   bravo_read_lock(&mmio->rwlock);
+}
+
+void truncate_check(int fd, mmio_t *mmio, off_t length) {
+  if (mmio->mmap_size < length) {
+      PRINT("truncate_check fd = %d, mmio->end - mmio->start = %lu, length = %lu", fd, mmio->end - mmio->start, length);
+      unsigned long current_len, new_len;
+      int s;
+      PRINT("expend memory-mapped file: %lu", mmio->end - mmio->start);
+      table_type_t new_skip_type;
+      while (check_expend(mmio, 0, length)) {
+        current_len = mmio->end - mmio->start;
+        if (current_len >= BASIC_MMAP_SIZE) {
+          new_len = current_len << 1;
+        } else {
+          new_len = BASIC_MMAP_SIZE;
+        }
+        PRINT("new_len = %lu current_len = %lu", new_len, current_len);
+        new_skip_type = get_deepest_table_type(new_len - 1);
+        log_table_t* new_skip = mmio->radixlog.lgd;
+        while (new_skip->type != new_skip_type)
+          new_skip = new_skip->entries[0];
+        PRINT("skip->type = %d", mmio->radixlog.skip->type);
+        PRINT("bitmap = %x valid_bitmap = %x", mmio->radixlog.skip->bitmap, mmio->radixlog.skip->bitmap_valid);
+        bool exist_log = !bitmap_empty(mmio->radixlog.skip->bitmap,PTRS_PER_TABLE) || !bitmap_empty(mmio->radixlog.skip->bitmap_valid,PTRS_PER_TABLE) ;
+        PRINT("exist_log = %d",exist_log);
+        while (mmio->radixlog.skip->type != new_skip_type) {
+            mmio->radixlog.skip = mmio->radixlog.skip->parent;
+            if (exist_log) {
+              set_bit(0,mmio->radixlog.skip->bitmap); // 0 is the first bit
+              FLUSH(mmio->radixlog.skip->bitmap,1);
+            }
+        }
+        mmio->radixlog.skip = new_skip;
+
+        s = posix_fallocate(fd, 0, new_len);
+        if (__glibc_unlikely(s != 0)) {
+          HANDLE_ERROR("fallocate");
+        }
+
+        mmio->start = mremap(mmio->start, current_len, new_len, MREMAP_MAYMOVE);
+        if (__glibc_unlikely(mmio->start == MAP_FAILED)) {
+          HANDLE_ERROR("mremap");
+        }
+        mmio->end = mmio->start + new_len;
+        mmio->mmap_size = new_len;
+      }
+  } else
+    mmio->end = mmio->start + length;
 }
 
 void dfs_bitmap(log_table_t* table, void* dst, void* end) {
@@ -201,6 +252,8 @@ void dfs_bitmap(log_table_t* table, void* dst, void* end) {
           page_index = find_first_bit(entry->bitmap,PTRS_PER_PAGE);
         }
       }
+      free_log_data(entry->log, LOG_4K);
+      free_idx_entry(entry, LOG_4K);
     }
     clear_bit(index,table->bitmap);
     clear_bit(index,table->bitmap_valid);
@@ -208,6 +261,7 @@ void dfs_bitmap(log_table_t* table, void* dst, void* end) {
     index2 = find_first_bit(table->bitmap_valid,PTRS_PER_TABLE);
     index = index1 < index2 ? index1 : index2;
   }
+  free_log_table(table);
   FENCE();
 }
 
@@ -678,10 +732,13 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
    * Acquire the reader-locks of the mmio.
    */
   bravo_read_lock(&mmio->rwlock);
-  PRINT("mmio->start=%p mmio->end=%p mmio->start + offset + len = %p, offset=%ld len=%ld", mmio->start,mmio->end,mmio->start+offset+len,offset,len);
+  PRINT("mmio->start=%p mmio->end=%p mmio->start + offset + len = %p, offset=%ld len=%ld", mmio,mmio->end,mmio->start+offset+len,offset,len);
+  // printf("mmio = %p mmio->start=%p mmio->end=%p mmio->start + offset + len = %p, offset=%ld len=%ld\n", &mmio->lock, mmio->start,mmio->end,mmio->start+offset+len,offset,len);
   if (__glibc_unlikely(check_expend(mmio, offset, len))) {
     PRINT("mmio->start=%p mmio->end=%p mmio->start + offset + len = %p, offset=%ld len=%ld", mmio->start,mmio->end,mmio->start+offset+len,offset,len);
+    // printf("mmio->start=%p mmio->end=%p mmio->start + offset + len = %p, offset=%ld len=%ld", mmio->start,mmio->end,mmio->start+offset+len,offset,len);
     expend_mmio(mmio, fd, offset, len);
+    PRINT("mmio = %p mmio->start = %p mmio->end = %p", mmio, mmio->start, mmio->end);
     PRINT("mmio->start=%p mmio->end=%p mmio->start + offset + len = %p, offset=%ld len=%ld", mmio->start,mmio->end,mmio->start+offset+len,offset,len);
   }
   PRINT("fd = %d mmio->end - mmio->start = %ld\n", fd, mmio->end - mmio->start);
@@ -704,9 +761,8 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
   } else {
     //while (mmio->lock) PRINT("fd = %d lock = %d\n",fd ,mmio->lock);
   }
-  
   if (prev_table->offset <= (unsigned long)offset && prev_table->offset + TABLE_SIZE[prev_table->type] >= (unsigned long)(offset + len)) {       
-    PRINT("use prev_table %d", prev_table->type);
+    PRINT("prev_table->offset = %d length = %d", prev_table->offset, TABLE_SIZE[prev_table->type]);
     subtree = prev_table;                                                                                        
   } else {
     if (prev_table->index!=63 && prev_table->offset + TABLE_SIZE[prev_table->type] <= (unsigned long)offset && prev_table->offset + 2 * TABLE_SIZE[prev_table->type] >= (unsigned long)(offset + len)) {
@@ -715,8 +771,8 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
       log_table_t* next = get_table_entry(prev_table->parent,prev_table->index + 1);
       subtree = next;
     } else {
-    PRINT("use new table");
-  }
+      PRINT("use new table");
+    }
   } 
   subtree = subtree ? subtree : mmio->radixlog.skip;
   //subtree = mmio->radixlog.skip;
@@ -728,6 +784,7 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
   dst = mmio->start;
   dst_offset = off;
   bool write_back = (mmio->policy_g == READOPT);
+
   while (len > ret) {   
     unsigned long dst_off = dst_offset;
     table = subtree;
@@ -738,7 +795,8 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
       log_len = log_size - log_offset > (unsigned long)(len-ret) ? (unsigned long)(len-ret) : log_size - log_offset;                                           
       index = get_table_index(off, table->type);
       PRINT("index = %d",index);                           
-      if (table->type == TABLE || log_len > TABLE_SIZE[table->type - 2])
+      //if (table->type == TABLE || log_len > TABLE_SIZE[table->type - 2])
+      if (table->type <= LMD && (table->type == TABLE || log_len > TABLE_SIZE[table->type - 1]) )
         break;  
       set_bit(index,table->bitmap);     
       if (fgl) lock_table(table,index,IWLOCK);
@@ -761,7 +819,9 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
       if (log_len == PAGE_SIZE) {
         //call_number[2]++;
         //gettimeofday(&tv_begin[2], NULL);
+        // printf("write 1\n"); fflush(stdout);
         WRITE_PAGE(table,index,log_,dst,dst_offset,src,blog,boplog,blog_index,fgl,write_back);
+        // printf("write 2\n"); fflush(stdout);
         //gettimeofday(&tv_end[2], NULL);
         //runtime_us[2]+=((tv_end[2].tv_sec - tv_begin[2].tv_sec) * 1000000 + tv_end[2].tv_usec - tv_begin[2].tv_usec);
       } else {
@@ -811,7 +871,7 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
         int next;      
         while (left_index <= right_index) {
           WRITE_MIDDLE_BLOCK(left_index,next,log_entry,right_index,dst,dst_off,log_,log_offset,src,src_offset,log_len,last_len,blog,boplog,blog_index,write_back);
-          left_index = next;                       
+          left_index = next;
         }
         PRINT("table = %p bitmap = %lu bitmap_valid = %lu",table, table->bitmap[0], table->bitmap_valid[0]);
       } 
@@ -867,7 +927,7 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
         for (unsigned int j = boplog[i].start; j < boplog[i].start + boplog[i].nbits; j++) {
           PRINT("tid = %d unlock %p %d\n", tid, table, j);
           CLEAN_FULLLOCK(&(table->lock[j]));
-       }
+        }
       } else if (boplog[i].type == 0){
         //unlock_entry((idx_entry_t*)boplog[i].locked_entry,boplog[i].start,boplog[i].start+boplog[i].nbits - 1,WLOCK);
       } else {
@@ -881,7 +941,7 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
   PRINT("end write fd = %d fgl = %d\n",fd, fgl); 
   if (!fgl) {
     CLEAN_FULLLOCK(&(mmio->lock));
-   }
+  }
   /*
   if (mmio->ref > 1) {
     increase_counter(&mmio->write);
@@ -895,7 +955,6 @@ ssize_t mmio_write_mgl(mmio_t *mmio, int fd, off_t offset, const void *buf, off_
   //FLUSH(blog,sizeof(*blog));
   //FLUSH(&(blog->len),sizeof(blog->len));
   FENCE();
-  
   /*
    * Release all writer-locks.
    */
@@ -1089,11 +1148,11 @@ ssize_t mmio_read_mgl(mmio_t *mmio, int fd, off_t offset, void *buf, size_t len)
   log_table_t *table;
   log_size_t log_size;
   PRINT("Begin read offset = %d fd = %d\n", offset, fd); 
-  PRINT("prev_table->type = %d table->index = %d table->parent = %p",prev_table->type, prev_table->index, prev_table->parent);
-  while (len > ret) {    
+  while (len > ret) {
     src = mmio->start;   
     src_offset = off;   
     table = prev_table;
+    PRINT("prev_table->type = %d table->index = %d table->parent = %p",prev_table->type, prev_table->index, prev_table->parent);
     //table = mmio->radixlog.skip;
     PRINT("off = %ld, table->type = %d index = %d first = %d second = %d",off, table->type, (off >> LMD_SHIFT)&(PTRS_PER_TABLE - 1), (off >> LMD_SHIFT), PTRS_PER_TABLE - 1);
     index = get_table_index(off,table->type);
@@ -1246,8 +1305,9 @@ ssize_t mmio_read_mgl(mmio_t *mmio, int fd, off_t offset, void *buf, size_t len)
         CLEAN_READLOCK(&(table->lock[boplog[i].start]));
       }
     }
-    if (mmio->ref == 1)
+    if (mmio->ref == 1) {
       mmio->policy_l = FILELOCK;
+    }
   }  
  /*
    * Release the reader-lock of the mmio.
